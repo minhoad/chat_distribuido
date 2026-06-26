@@ -66,6 +66,7 @@ form button, .composer button {
 }
 
 .error { color: #dc2626; font-size: 0.9rem; }
+.inline-error { margin: 0.25rem 0 0; }
 
 .layout {
   display: grid;

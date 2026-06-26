@@ -13,7 +13,7 @@ public interface ChatMessageRepository extends MongoRepository<ChatMessageDocume
     List<ChatMessageDocument> findBySenderIdAndRecipientIdOrderByTimestampAsc(String senderId, String recipientId);
 
     @Query("""
-            { $or: [
+            { type: 'PRIVATE', $or: [
                 { senderId: ?0, recipientId: ?1 },
                 { senderId: ?1, recipientId: ?0 }
             ] }

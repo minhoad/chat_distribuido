@@ -13,6 +13,7 @@ import org.springframework.messaging.simp.config.ChannelRegistration;
 import org.springframework.messaging.simp.stomp.StompCommand;
 import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.messaging.support.ChannelInterceptor;
+import org.springframework.messaging.MessageDeliveryException;
 import org.springframework.messaging.support.MessageHeaderAccessor;
 import org.springframework.web.socket.config.annotation.WebSocketMessageBrokerConfigurer;
 
@@ -44,11 +45,12 @@ public class WebSocketAuthConfig implements WebSocketMessageBrokerConfigurer {
 
             if (accessor.getCommand() == StompCommand.CONNECT) {
                 String token = extractToken(accessor);
-                if (token != null && jwtValidator.isValid(token)) {
-                    String userId = jwtValidator.extractUserId(token);
-                    accessor.setUser(new StompPrincipal(userId));
-                    presenceService.userConnected(userId, accessor.getSessionId());
+                if (token == null || !jwtValidator.isValid(token)) {
+                    throw new MessageDeliveryException("Token inválido ou ausente");
                 }
+                String userId = jwtValidator.extractUserId(token);
+                accessor.setUser(new StompPrincipal(userId));
+                presenceService.userConnected(userId, accessor.getSessionId());
             }
 
             if (accessor.getCommand() == StompCommand.DISCONNECT) {

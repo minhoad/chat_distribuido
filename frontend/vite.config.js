@@ -1,10 +1,39 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 
-// Em dev, o proxy aponta direto nos microsserviços (não depende do Gateway).
-// Se o Gateway estiver rodando em 8080, use VITE_USE_GATEWAY=true no .env
+// Dev: proxy direto nos microsserviços (mais estável que passar pelo Gateway).
+// SockJS/WebSocket quebra com proxy duplo (Vite → Gateway → chat).
+// Use VITE_USE_GATEWAY=true para testar via API Gateway (8080).
 const useGateway = process.env.VITE_USE_GATEWAY === 'true';
 const gateway = 'http://localhost:8080';
+
+const directProxy = {
+  '/api/auth': {
+    target: 'http://localhost:8081',
+    changeOrigin: true,
+  },
+  '/api/history': {
+    target: 'http://localhost:8083',
+    changeOrigin: true,
+  },
+  '/ws': {
+    target: 'http://localhost:8082',
+    ws: true,
+    changeOrigin: true,
+  },
+};
+
+const gatewayProxy = {
+  '/api': {
+    target: gateway,
+    changeOrigin: true,
+  },
+  '/ws': {
+    target: gateway,
+    ws: true,
+    changeOrigin: true,
+  },
+};
 
 export default defineConfig({
   plugins: [react()],
@@ -13,25 +42,6 @@ export default defineConfig({
   },
   server: {
     port: 5173,
-    proxy: useGateway
-      ? {
-          '/api': gateway,
-          '/ws': { target: gateway, ws: true, changeOrigin: true },
-        }
-      : {
-          '/api/auth': {
-            target: 'http://localhost:8081',
-            changeOrigin: true,
-          },
-          '/api/history': {
-            target: 'http://localhost:8083',
-            changeOrigin: true,
-          },
-          '/ws': {
-            target: 'http://localhost:8082',
-            ws: true,
-            changeOrigin: true,
-          },
-        },
+    proxy: useGateway ? gatewayProxy : directProxy,
   },
 });

@@ -4,6 +4,9 @@ server:
 spring:
   application:
     name: history-service
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   data:
     mongodb:
       uri: mongodb://admin:admin123@localhost:27017/chatdb?authSource=admin

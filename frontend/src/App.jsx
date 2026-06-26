@@ -17,6 +17,12 @@ export default function App() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
+
+    if (mode === 'register' && password.length < 6) {
+      setError('A senha deve ter entre 6 e 100 caracteres.');
+      return;
+    }
+
     setLoading(true);
     try {
       const data = mode === 'login'

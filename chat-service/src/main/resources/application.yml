@@ -7,6 +7,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
   data:
     redis:
       host: localhost

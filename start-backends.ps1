@@ -5,6 +5,12 @@ $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
 $javaHome = if ($env:JAVA_HOME) { $env:JAVA_HOME } else { "D:\java" }
 
+Write-Host "Compilando chat-common e instalando no repositório local Maven..."
+& "$root\mvnw.cmd" install -pl chat-common -DskipTests -q
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Falha ao compilar chat-common. Verifique JAVA_HOME ($javaHome)."
+}
+
 $services = @(
     @{ Name = "auth-service";    Port = 8081 },
     @{ Name = "chat-service";    Port = 8082 },
@@ -13,9 +19,8 @@ $services = @(
 )
 
 foreach ($svc in $services) {
-    $title = $svc.Name
     $module = $svc.Name
-  Write-Host "Iniciando $title (porta $($svc.Port))..."
+    Write-Host "Iniciando $module (porta $($svc.Port))..."
     Start-Process powershell -ArgumentList @(
         "-NoExit",
         "-Command",
@@ -33,4 +38,4 @@ Write-Host "  - http://localhost:8081  (Auth)"
 Write-Host "  - http://localhost:8082  (Chat)"
 Write-Host "  - http://localhost:8083  (History)"
 Write-Host ""
-Write-Host "Frontend: cd frontend && npm install && npm run dev"
+Write-Host "Frontend: cd frontend; npm run dev"

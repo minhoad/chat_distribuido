@@ -41,4 +41,14 @@ class AuthIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.token").exists());
     }
+
+    @Test
+    void registerWithShortPasswordReturnsFriendlyError() throws Exception {
+        mockMvc.perform(post("/api/auth/register")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"username\":\"bob\",\"email\":\"bob@test.com\",\"password\":\"123\"}"))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.status").value(400))
+                .andExpect(jsonPath("$.message").value("A senha deve ter entre 6 e 100 caracteres."));
+    }
 }

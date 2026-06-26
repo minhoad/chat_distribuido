@@ -40,5 +40,12 @@ public class RedisMessageSubscriber implements MessageListener {
                 chatMessage.getRecipientId(),
                 "/queue/messages",
                 chatMessage);
+
+        if (!chatMessage.getSenderId().equals(chatMessage.getRecipientId())) {
+            messagingTemplate.convertAndSendToUser(
+                    chatMessage.getSenderId(),
+                    "/queue/messages",
+                    chatMessage);
+        }
     }
 }
