@@ -1,14 +1,18 @@
 # Inicia cada microsserviço em uma nova janela do PowerShell.
-# Pré-requisito: Eureka já rodando (porta 8761) e JAVA_HOME configurado.
+# Pré-requisito: Eureka já rodando (porta 8761) e Java 21+ (JAVA_HOME).
 
 $ErrorActionPreference = "Stop"
 $root = Split-Path -Parent $MyInvocation.MyCommand.Path
-$javaHome = if ($env:JAVA_HOME) { $env:JAVA_HOME } else { "D:\java" }
 
-Write-Host "Compilando chat-common e instalando no repositório local Maven..."
+if (-not $env:JAVA_HOME) {
+    Write-Warning "JAVA_HOME não definido. Configure Java 21+ antes de continuar."
+    exit 1
+}
+
+Write-Host "Compilando chat-common..."
 & "$root\mvnw.cmd" install -pl chat-common -DskipTests -q
 if ($LASTEXITCODE -ne 0) {
-    Write-Error "Falha ao compilar chat-common. Verifique JAVA_HOME ($javaHome)."
+    Write-Error "Falha ao compilar chat-common. Verifique JAVA_HOME ($env:JAVA_HOME)."
 }
 
 $services = @(
@@ -24,7 +28,7 @@ foreach ($svc in $services) {
     Start-Process powershell -ArgumentList @(
         "-NoExit",
         "-Command",
-        "`$env:JAVA_HOME='$javaHome'; Set-Location '$root'; .\mvnw.cmd -pl $module spring-boot:run"
+        "`$env:JAVA_HOME='$env:JAVA_HOME'; Set-Location '$root'; .\mvnw.cmd -pl $module spring-boot:run"
     )
     Start-Sleep -Seconds 3
 }
@@ -38,4 +42,5 @@ Write-Host "  - http://localhost:8081  (Auth)"
 Write-Host "  - http://localhost:8082  (Chat)"
 Write-Host "  - http://localhost:8083  (History)"
 Write-Host ""
-Write-Host "Frontend: cd frontend; npm run dev"
+Write-Host "Frontend (apresentação via Gateway): cd frontend; npm run dev:gateway"
+Write-Host "Frontend (dev direto):               cd frontend; npm run dev"

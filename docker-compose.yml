@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   postgres:
     image: postgres:16-alpine
@@ -11,7 +9,7 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - D:/TP_FINAL_SD/chat-distribuido/data/postgres:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql/data
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U admin -d authdb"]
       interval: 5s
@@ -28,7 +26,7 @@ services:
       MONGO_INITDB_ROOT_PASSWORD: admin123
       MONGO_INITDB_DATABASE: chatdb
     volumes:
-      - D:/TP_FINAL_SD/chat-distribuido/data/mongo:/data/db
+      - mongo_data:/data/db
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
       interval: 5s
@@ -48,7 +46,7 @@ services:
       retries: 5
 
   zookeeper:
-    image:  zookeeper:3.9.5 
+    image: zookeeper:3.9.5
     container_name: chat-zookeeper
     ports:
       - "2181:2181"
@@ -62,11 +60,9 @@ services:
       - "9092:9092"
       - "9094:9094"
     environment:
-      # Modo KRaft: broker e controller no mesmo nó
       KAFKA_PROCESS_ROLES: broker,controller
       KAFKA_NODE_ID: 1
       KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
-      # Listeners (adicionado o listener do controller na porta 9093)
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
       KAFKA_LISTENERS: CONTROLLER://0.0.0.0:9093,INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:9094
       KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://localhost:9094

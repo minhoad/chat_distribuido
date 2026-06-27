@@ -71,11 +71,22 @@ Essa separação evita que operações de banco bloqueiem a entrega em tempo rea
 
 Grupos são identificados por `recipientId` (ex.: `sala-geral`, `projeto-sd`) com `type: GROUP`. A entrega usa broadcast STOMP em `/topic/group.{groupId}`. O histórico de grupo é recuperado por `GET /api/history/recipient/{groupId}`. Os grupos são **fixos no frontend** — não há CRUD de salas no backend.
 
-### 2.5 Limitações arquiteturais reconhecidas
+### 2.5 API Gateway — desenvolvimento vs apresentação
+
+A arquitetura alvo prevê **entrada única** pelo API Gateway (`:8080`), com roteamento via Eureka (`lb://auth-service`, `lb://chat-service`, etc.). Na prática, existem dois modos de operação do frontend:
+
+| Modo | Comando | Roteamento | Uso |
+|------|---------|------------|-----|
+| Desenvolvimento | `npm run dev` | Vite → microsserviços diretos (`:8081`, `:8082`, `:8083`) | Codificação diária; WebSocket mais estável sem proxy duplo |
+| Apresentação / demo | `npm run dev:gateway` | Vite → Gateway (`:8080`) → microsserviços | Demonstração da arquitetura distribuída na entrega |
+| Teste de carga REST | `load-test/run_load_test.ps1` | Cliente → Gateway (`:8080`) | Valida auth e histórico via ponto de entrada único |
+
+O bypass do Gateway no modo dev é **decisão consciente de produtividade**, não a arquitetura final. Para a apresentação em sala, utiliza-se `npm run dev:gateway` (ou `make front-gateway` / `./run.sh front-gateway`), garantindo que login, histórico e WebSocket passem pelo Gateway.
+
+### 2.6 Limitações arquiteturais reconhecidas
 
 - **Alta disponibilidade:** Eureka, Gateway e Redis permitem réplicas, mas **não foi executado teste automatizado de failover** (ex.: derrubar uma instância e medir recuperação).
 - **Escalabilidade horizontal:** o mecanismo Redis Pub/Sub está implementado, porém **não foi demonstrado empiricamente** com duas instâncias do `chat-service` em execução simultânea.
-- **Ambiente de desenvolvimento:** o Vite faz proxy direto para `:8081`, `:8082` e `:8083`, contornando o Gateway; em produção, o tráfego deveria passar exclusivamente por `:8080`.
 - **Grupos:** sem gestão dinâmica de membros ou permissões.
 
 ---
@@ -196,7 +207,7 @@ Para atender plenamente o requisito de carga com 10 usuários trocando mensagens
 
 5. O **teste de carga existente valida registro/login em lote**, mas **não substitui** o estudo de caso de 10 usuários simultâneos trocando mensagens via WebSocket — ponto a reforçar antes da apresentação.
 
-6. Para demonstração em sala, recomenda-se: subir infra (`docker compose up -d`), iniciar serviços na ordem Eureka → backends → Gateway → frontend, registrar dois usuários e validar chat privado, grupo e recarga de histórico.
+6. Para demonstração em sala: `docker compose up -d` → Eureka → backends → `npm run dev:gateway` (tráfego via Gateway). Scripts `Makefile`, `run.sh` e `README.md` documentam a execução em qualquer máquina com Java 21, Docker e Node.
 
 ---
 

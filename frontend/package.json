@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "dev:gateway": "vite --mode gateway",
     "build": "vite build",
+    "build:gateway": "vite build --mode production.gateway",
     "preview": "vite preview"
   },
   "dependencies": {
