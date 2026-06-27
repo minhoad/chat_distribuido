@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: chat-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: authdb
       POSTGRES_USER: admin
@@ -19,6 +20,7 @@ services:
   mongodb:
     image: mongo:6-jammy
     container_name: chat-mongodb
+    restart: unless-stopped
     ports:
       - "27017:27017"
     environment:
@@ -36,6 +38,7 @@ services:
   redis:
     image: redis:7-alpine
     container_name: chat-redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -48,6 +51,7 @@ services:
   zookeeper:
     image: zookeeper:3.9.5
     container_name: chat-zookeeper
+    restart: unless-stopped
     ports:
       - "2181:2181"
     environment:
@@ -56,6 +60,7 @@ services:
   kafka:
     image: apache/kafka:latest
     container_name: chat-kafka
+    restart: unless-stopped
     ports:
       - "9092:9092"
       - "9094:9094"

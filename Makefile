@@ -74,9 +74,29 @@ front: ## Frontend dev (proxy direto nos microsserviços)
 front-gateway: ## Frontend dev via API Gateway (:8080) — use na apresentação
 	cd frontend && npm install && npm run dev:gateway
 
-load-test: ## Teste de carga REST (10 usuários via Gateway)
+load-test: ## Teste de carga REST (10 usuarios via Gateway)
 ifeq ($(OS),Windows_NT)
 	powershell -ExecutionPolicy Bypass -File load-test/run_load_test.ps1
 else
 	./run.sh load-test
+endif
+
+load-test-parallel: ## Carga REST com 10 logins paralelos (PS 7+)
+	powershell -ExecutionPolicy Bypass -File load-test/run_load_test.ps1 -Parallel
+
+e2e-test: ## E2E auth + STOMP (requer stack rodando)
+	cd load-test && npm install --legacy-peer-deps && npm run e2e
+
+chaos-test: ## Testes de disponibilidade (chaos) — requer Docker + backends
+ifeq ($(OS),Windows_NT)
+	powershell -ExecutionPolicy Bypass -File chaos-test/run_all_chaos.ps1 -SkipMemory
+else
+	@echo "Chaos tests: use chaos-test/run_all_chaos.ps1 no Windows ou veja chaos-test/README.md"
+endif
+
+health: ## Verifica infra Docker e endpoints
+ifeq ($(OS),Windows_NT)
+	powershell -ExecutionPolicy Bypass -File chaos-test/check_health.ps1
+else
+	@echo "Use: docker compose ps && curl localhost:8081/api/auth/users"
 endif

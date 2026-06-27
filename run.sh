@@ -1,15 +1,46 @@
 #!/usr/bin/env bash
-# Chat Distribuído — script de execução (Linux/macOS)
+# Chat Distribuído — script de execução (Linux/macOS/Git Bash)
 # Uso: ./run.sh [comando]
-# Windows: use Makefile ou start-eureka.ps1 / start-backends.ps1
+# Windows PowerShell: use start-eureka.ps1 / start-backends.ps1
 
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$ROOT"
 
-MVN="./mvnw"
-[ -x "$MVN" ] || chmod +x "$MVN"
+MVN_MODE=""
+MVN_BIN=""
+
+resolve_mvn() {
+  if [ -f "./mvnw.cmd" ] && command -v cmd.exe >/dev/null 2>&1; then
+    MVN_MODE="cmd"
+    return
+  fi
+
+  if [ -x "./mvnw" ]; then
+    MVN_BIN="./mvnw"
+  elif [ -f "./mvnw" ]; then
+    chmod +x ./mvnw 2>/dev/null || true
+    MVN_BIN="./mvnw"
+  elif command -v mvn >/dev/null 2>&1; then
+    MVN_BIN="mvn"
+  else
+    echo "Erro: Maven Wrapper não encontrado (mvnw / mvnw.cmd)."
+    exit 1
+  fi
+}
+
+# Executa Maven Wrapper (cmd.exe no Git Bash; ./mvnw no Linux/macOS)
+run_mvn() {
+  if [ "$MVN_MODE" = "cmd" ]; then
+    # cmd.exe //c exige um único argumento após //c
+    cmd.exe //c "mvnw.cmd $*"
+  else
+    "$MVN_BIN" "$@"
+  fi
+}
+
+resolve_mvn
 
 require_java() {
   if ! command -v java >/dev/null 2>&1; then
@@ -28,7 +59,7 @@ require_docker() {
 install_common() {
   require_java
   echo ">> Instalando chat-common..."
-  "$MVN" install -pl chat-common -DskipTests -q
+  run_mvn install -pl chat-common -DskipTests -q
 }
 
 cmd_help() {
@@ -78,12 +109,12 @@ cmd_infra_logs() {
 
 cmd_build() {
   install_common
-  "$MVN" clean package -DskipTests
+  run_mvn clean package -DskipTests
 }
 
 cmd_test() {
   install_common
-  "$MVN" test
+  run_mvn test
 }
 
 start_service_bg() {
@@ -91,14 +122,32 @@ start_service_bg() {
   local port="$2"
   local log_file="$ROOT/logs/${module}.log"
   mkdir -p "$ROOT/logs"
-  install_common
   echo ">> Iniciando $module (porta $port) — log: $log_file"
-  nohup "$MVN" -pl "$module" spring-boot:run >"$log_file" 2>&1 &
+  nohup run_mvn -pl "$module" spring-boot:run >"$log_file" 2>&1 &
   echo $! >"$ROOT/logs/${module}.pid"
 }
 
 cmd_backends() {
   require_java
+  install_common
+
+  if [ "$MVN_MODE" = "cmd" ]; then
+    echo ">> Windows detectado — usando start-backends.ps1 (janelas separadas)"
+    local win_root="${WIN_ROOT:-$(pwd -W)}"
+    local ps_cmd="Set-Location '$win_root'; & '.\start-backends.ps1'"
+    if [ -n "${JAVA_HOME:-}" ]; then
+      local win_java="$JAVA_HOME"
+      if command -v cygpath >/dev/null 2>&1; then
+        win_java="$(cygpath -w "$JAVA_HOME")"
+      elif [ -d "$JAVA_HOME" ]; then
+        win_java="$(cd "$JAVA_HOME" && pwd -W 2>/dev/null || echo "$JAVA_HOME")"
+      fi
+      ps_cmd="\$env:JAVA_HOME='$win_java'; $ps_cmd"
+    fi
+    powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "$ps_cmd"
+    return
+  fi
+
   echo ">> Iniciando microsserviços em background (logs em ./logs/)"
   start_service_bg auth-service 8081
   sleep 3
@@ -120,13 +169,13 @@ cmd_backends() {
 
 cmd_front() {
   cd frontend
-  npm install
+  npm install --legacy-peer-deps
   npm run dev
 }
 
 cmd_front_gateway() {
   cd frontend
-  npm install
+  npm install --legacy-peer-deps
   npm run dev:gateway
 }
 
@@ -157,11 +206,11 @@ case "${1:-help}" in
   build)          cmd_build ;;
   test)           cmd_test ;;
   install-common) install_common ;;
-  eureka)         install_common; "$MVN" -pl eureka-server spring-boot:run ;;
-  auth)           install_common; "$MVN" -pl auth-service spring-boot:run ;;
-  chat)           install_common; "$MVN" -pl chat-service spring-boot:run ;;
-  history)        install_common; "$MVN" -pl history-service spring-boot:run ;;
-  gateway)        install_common; "$MVN" -pl api-gateway spring-boot:run ;;
+  eureka)         install_common; run_mvn -pl eureka-server spring-boot:run ;;
+  auth)           install_common; run_mvn -pl auth-service spring-boot:run ;;
+  chat)           install_common; run_mvn -pl chat-service spring-boot:run ;;
+  history)        install_common; run_mvn -pl history-service spring-boot:run ;;
+  gateway)        install_common; run_mvn -pl api-gateway spring-boot:run ;;
   backends)       cmd_backends ;;
   front)          cmd_front ;;
   front-gateway)  cmd_front_gateway ;;

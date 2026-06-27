@@ -55,15 +55,17 @@ make backends            # Windows: PowerShell; Linux: ./run.sh backends
 | Modo | Comando | Quando usar |
 |------|---------|-------------|
 | **Desenvolvimento** | `npm run dev` | Proxy direto em `:8081`, `:8082`, `:8083` — mais estável para WebSocket |
-| **Apresentação / demo** | `npm run dev:gateway` | **Todo tráfego via API Gateway `:8080`** — arquitetura final |
+| **Apresentação / demo** | `npm run dev:gateway` | REST via Gateway `:8080`; WebSocket direto em `:8080/ws` (sem proxy WS do Vite) |
 
 ```bash
 cd frontend
-npm install
+npm install --legacy-peer-deps
 npm run dev:gateway    # recomendado na entrega/apresentação
 ```
 
 Atalhos na raiz: `make front-gateway` ou `./run.sh front-gateway`
+
+**WebSocket no modo gateway:** o browser conecta em `http://localhost:8080/ws` (Gateway → chat-service). O proxy WebSocket do Vite **não** é usado — SockJS falha com proxy duplo (`ECONNRESET`). Se ainda instável, defina em `.env.gateway`: `VITE_WS_BASE=http://localhost:8082/ws`.
 
 ### 4. Verificação
 
@@ -86,8 +88,12 @@ O script de carga (`load-test/run_load_test.ps1` ou `./run.sh load-test`) já us
 ## Testes
 
 ```bash
-./mvnw test              # ou: make test
-./run.sh load-test       # 10 usuários REST via Gateway (Windows: load-test/run_load_test.ps1)
+.\mvnw.cmd test                              # 9 testes unitarios/integracao (H2)
+cd load-test
+.\run_load_test.ps1                          # carga REST sequencial (10 users)
+.\run_load_test.ps1 -Parallel                # carga REST paralela (10 users)
+npm install --legacy-peer-deps && npm run e2e  # E2E auth + STOMP
+cd ..\chaos-test && .\check_health.ps1       # diagnostico infra
 ```
 
 ## Estrutura

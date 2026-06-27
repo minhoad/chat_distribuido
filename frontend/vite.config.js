@@ -24,14 +24,12 @@ export default defineConfig(({ mode }) => {
     },
   };
 
+  // Gateway: só REST passa pelo proxy do Vite.
+  // WebSocket: browser conecta direto em VITE_WS_BASE (ver .env.gateway) — SockJS quebra com
+  // proxy duplo Vite → Gateway → chat (ECONNRESET / socket ended by the other party).
   const gatewayProxy = {
     '/api': {
       target: gateway,
-      changeOrigin: true,
-    },
-    '/ws': {
-      target: gateway,
-      ws: true,
       changeOrigin: true,
     },
   };
